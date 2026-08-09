@@ -83,8 +83,8 @@ export default function ProfileTab({ loggedGames }) {
             <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-pulse" />
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">FANLOG PROFILE</span>
           </div>
-          <span className="text-[9px] font-black text-[#00205B] bg-[#00205B]/5 px-2 py-0.5 rounded uppercase tracking-wide leading-none">
-            LEAFS NATION MARTYR
+          <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wide leading-none`} style={{ color: topTeam.color, backgroundColor: `${topTeam.color}18` }}>
+            {topTeam.shortName} Elite Fan
           </span>
         </div>
 

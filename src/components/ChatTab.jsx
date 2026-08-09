@@ -8,19 +8,25 @@ export default function ChatTab({ activeRoomId, setActiveRoomId }) {
   const [newMessageText, setNewMessageText] = useState('');
   
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   // Get currently active room object
   const activeRoom = rooms.find(r => r.id === activeRoomId);
   const activeTeam = activeRoom ? TEAMS[activeRoom.teamId] : null;
 
-  // Scroll to bottom of chat when messages change
+  // Scroll to bottom of chat when messages change — use the container's scrollTop
+  // to avoid bubbling up and shifting the parent page
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   };
 
   useEffect(() => {
     if (activeRoomId) {
-      scrollToBottom();
+      // Small delay lets the DOM settle after AnimatePresence renders the overlay
+      setTimeout(scrollToBottom, 50);
     }
   }, [activeRoomId, rooms]);
 
@@ -31,7 +37,7 @@ export default function ChatTab({ activeRoomId, setActiveRoomId }) {
 
     const userMsg = {
       sender: 'You',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="#6366f1"/><text x="20" y="26" font-family="system-ui" font-size="16" font-weight="700" fill="white" text-anchor="middle">Y</text></svg>')}`,
       text: newMessageText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isUser: true
@@ -71,9 +77,14 @@ export default function ChatTab({ activeRoomId, setActiveRoomId }) {
       const randomName = responseNames[Math.floor(Math.random() * responseNames.length)];
       const randomText = responses[Math.floor(Math.random() * responses.length)];
 
+      const initials = ['P', 'R', 'B', 'F', 'J'];
+      const colors = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6'];
+      const colorIdx = Math.floor(Math.random() * colors.length);
+      const initial = initials[Math.floor(Math.random() * initials.length)];
+      const randomAvatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="${colors[colorIdx]}"/><text x="20" y="26" font-family="system-ui" font-size="16" font-weight="700" fill="white" text-anchor="middle">${initial}</text></svg>`)}`;
       const botMsg = {
         sender: randomName,
-        avatar: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 999999)}?w=100&auto=format&fit=crop&q=80`,
+        avatar: randomAvatarSvg,
         text: randomText,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isUser: false
@@ -247,7 +258,7 @@ export default function ChatTab({ activeRoomId, setActiveRoomId }) {
             </div>
 
             {/* Message Thread */}
-            <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 bg-slate-50">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 bg-slate-50">
               <div className="text-center py-2 select-none">
                 <span className="bg-slate-200/60 text-slate-500 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
                   Fandom Room Started
@@ -262,7 +273,7 @@ export default function ChatTab({ activeRoomId, setActiveRoomId }) {
                   >
                     {!msg.isUser && (
                       <img 
-                        src={msg.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100'} 
+                        src={msg.avatar || `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="#94a3b8"/><text x="20" y="26" font-family="system-ui" font-size="16" font-weight="700" fill="white" text-anchor="middle">?</text></svg>')}`} 
                         alt={msg.sender} 
                         className="w-7 h-7 rounded-full object-cover border border-slate-200 flex-shrink-0 mt-0.5" 
                       />

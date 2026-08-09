@@ -58,7 +58,7 @@ function getSportConfig(league) {
   }
 }
 
-export function generateFandomContext({ name, handle, favorites }) {
+export function generateFandomContext({ name, handle, favorites, scores }) {
   // 1. Sanitize user identity parameters
   const finalName = name && name.trim() ? name.trim() : 'Ethan Henderson';
   let finalHandle = handle && handle.trim() ? handle.trim() : '@ethan_h';
@@ -94,18 +94,27 @@ export function generateFandomContext({ name, handle, favorites }) {
   const topTeam = selectedTeams[topTeamId];
 
   // 4. Construct MOCK_PROFILE
+  // Parse passed-in scores (from landing page) or fall back to presets
+  let parsedScores = [];
+  if (scores) {
+    if (Array.isArray(scores)) {
+      parsedScores = scores.map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+    } else if (typeof scores === 'string') {
+      parsedScores = scores.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    }
+  }
   // Devotion score baseline presets: 1st gets 92, 2nd gets 78, 3rd gets 65, 4th gets 42, 5th gets 28
   const scorePresets = [92, 78, 65, 42, 28];
   const fandomIndex = favoritesList.map((teamId, idx) => ({
     teamId,
-    score: scorePresets[idx] || 25
+    score: parsedScores[idx] !== undefined ? parsedScores[idx] : (scorePresets[idx] || 25)
   }));
 
   const mockProfile = {
     user: {
       name: finalName,
       handle: finalHandle,
-      avatar: '/avatar.svg', // Uses high-fidelity local vector asset
+      avatar: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><rect width="40" height="40" rx="20" fill="url(#g)"/><text x="20" y="26" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">${(finalName || 'G').charAt(0).toUpperCase()}</text></svg>`)}`, // Robust inline SVG avatar
       favorites: favoritesList
     },
     fandomIndex,
