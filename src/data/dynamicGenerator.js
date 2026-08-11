@@ -6,7 +6,8 @@ const LEAGUE_OPPONENTS = {
   NBA: { id: 'celtics', name: 'Boston Celtics', logo: 'https://a.espncdn.com/i/teamlogos/nba/500/bos.png', shortName: 'Celtics' },
   NHL: { id: 'bruins', name: 'Boston Bruins', logo: 'https://a.espncdn.com/i/teamlogos/nhl/500/bos.png', shortName: 'Bruins' },
   MLB: { id: 'yankees', name: 'New York Yankees', logo: 'https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png', shortName: 'Yankees' },
-  MLS: { id: 'galaxy', name: 'LA Galaxy', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/187.png', shortName: 'Galaxy' }
+  MLS: { id: 'galaxy', name: 'LA Galaxy', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/187.png', shortName: 'Galaxy' },
+  CFL: { id: 'argonauts', name: 'Toronto Argonauts', logo: '/logos/cfl/argonauts.png', shortName: 'Argonauts' }
 };
 
 // Fallback opponents in case the selected team is the default opponent (prevents playing itself)
@@ -15,7 +16,8 @@ const LEAGUE_FALLBACK_OPPONENTS = {
   NBA: { id: 'lakers', name: 'Los Angeles Lakers', logo: 'https://a.espncdn.com/i/teamlogos/nba/500/lal.png', shortName: 'Lakers' },
   NHL: { id: 'canadiens', name: 'Montreal Canadiens', logo: 'https://a.espncdn.com/i/teamlogos/nhl/500/mtl.png', shortName: 'Canadiens' },
   MLB: { id: 'redsox', name: 'Boston Red Sox', logo: 'https://a.espncdn.com/i/teamlogos/mlb/500/bos.png', shortName: 'Red Sox' },
-  MLS: { id: 'lafc', name: 'Los Angeles FC', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/18966.png', shortName: 'LAFC' }
+  MLS: { id: 'lafc', name: 'Los Angeles FC', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/18966.png', shortName: 'LAFC' },
+  CFL: { id: 'ticats', name: 'Hamilton Tiger-Cats', logo: '/logos/cfl/ticats.png', shortName: 'Tiger-Cats' }
 };
 
 function getOpponentForTeam(team) {
@@ -74,9 +76,10 @@ export function generateFandomContext({ name, handle, favorites, scores }) {
     favoritesList = favorites.split(',').map(s => s.trim()).filter(id => TEAM_DIRECTORY[id]);
   }
 
-  // Fallback to default index if empty
+  // Fallback to default index if empty. (Must be valid TEAM_DIRECTORY ids — the
+  // old 'jays' was not a real id and crashed when this fallback triggered.)
   if (favoritesList.length === 0) {
-    favoritesList = ['leafs', 'bills', 'jays', 'raptors'];
+    favoritesList = ['leafs', 'bills', 'bluejays', 'raptors'];
   }
 
   // 3. Resolve active favorite team entities
