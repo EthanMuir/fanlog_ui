@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_PROFILE, TEAMS } from '../data/mockData';
+import { MOCK_LOGGED_GAMES, MOCK_PROFILE, TEAMS } from '../data/mockData';
 import { Trophy, Clock, Calendar } from 'lucide-react';
 import { motion, animate } from 'framer-motion';
 
@@ -20,9 +20,12 @@ export default function ProfileTab({ loggedGames }) {
   }, []);
 
   // Recalculating totals based on dynamic logs state
-  const totalGames = stats.gamesWatched + (loggedGames.length - 3); // Adjust offset from baseline
-  const totalHours = stats.hoursWatched + (loggedGames.length - 3) * 2; // Estimate 2 hours per logged game
-  const loggedThisMonth = stats.gamesLoggedThisMonth + (loggedGames.length - 3);
+  // The stats are the baseline; add only games logged since the demo opened
+  // (it starts with one logged game per favorite team, not a fixed three).
+  const newLogs = loggedGames.length - MOCK_LOGGED_GAMES.length;
+  const totalGames = stats.gamesWatched + newLogs;
+  const totalHours = stats.hoursWatched + newLogs * 2; // Estimate 2 hours per logged game
+  const loggedThisMonth = stats.gamesLoggedThisMonth + newLogs;
 
   // Deriving active favorite team details
   const topTeamId = fandomIndex[0].teamId;
@@ -33,10 +36,8 @@ export default function ProfileTab({ loggedGames }) {
   const cx = 150;
   const cy = 160;
 
-  // Unified FanLog score is the average of the active fandom index scores
-  const averageScore = Math.round(
-    fandomIndex.reduce((sum, item) => sum + item.score, 0) / fandomIndex.length
-  );
+  // Same FanLog Score as the card on the landing page (see data/fanScore.js)
+  const { fanScore } = MOCK_PROFILE;
 
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar px-5 pb-8 pt-2 bg-[#F8FAFC]">
@@ -171,7 +172,7 @@ export default function ProfileTab({ loggedGames }) {
               transition={{ delay: 0.3 }}
               className="text-4xl font-black tracking-tighter text-slate-900 leading-none block font-mono"
             >
-              {Math.round(averageScore * animProgress)}
+              {Math.round(fanScore * animProgress)}
             </motion.span>
             <span className="text-[7.5px] font-bold text-slate-400 tracking-wider uppercase block mt-0.5">
               FANLOG SCORE

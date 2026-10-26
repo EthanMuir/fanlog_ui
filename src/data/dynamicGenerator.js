@@ -1,57 +1,48 @@
 import { TEAM_DIRECTORY } from './teamDirectory';
+import { computeFanScore } from './fanScore';
 
-// Default league-specific opponents for realistic matchups
-const LEAGUE_OPPONENTS = {
-  NFL: { id: 'chiefs', name: 'Kansas City Chiefs', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/kc.png', shortName: 'Chiefs' },
-  NBA: { id: 'celtics', name: 'Boston Celtics', logo: 'https://a.espncdn.com/i/teamlogos/nba/500/bos.png', shortName: 'Celtics' },
-  NHL: { id: 'bruins', name: 'Boston Bruins', logo: 'https://a.espncdn.com/i/teamlogos/nhl/500/bos.png', shortName: 'Bruins' },
-  MLB: { id: 'yankees', name: 'New York Yankees', logo: 'https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png', shortName: 'Yankees' },
-  MLS: { id: 'galaxy', name: 'LA Galaxy', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/187.png', shortName: 'Galaxy' },
-  CFL: { id: 'argonauts', name: 'Toronto Argonauts', logo: '/logos/cfl/argonauts.png', shortName: 'Argonauts' }
-};
-
-// Fallback opponents in case the selected team is the default opponent (prevents playing itself)
-const LEAGUE_FALLBACK_OPPONENTS = {
-  NFL: { id: 'raiders', name: 'Las Vegas Raiders', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lv.png', shortName: 'Raiders' },
-  NBA: { id: 'lakers', name: 'Los Angeles Lakers', logo: 'https://a.espncdn.com/i/teamlogos/nba/500/lal.png', shortName: 'Lakers' },
-  NHL: { id: 'canadiens', name: 'Montreal Canadiens', logo: 'https://a.espncdn.com/i/teamlogos/nhl/500/mtl.png', shortName: 'Canadiens' },
-  MLB: { id: 'redsox', name: 'Boston Red Sox', logo: 'https://a.espncdn.com/i/teamlogos/mlb/500/bos.png', shortName: 'Red Sox' },
-  MLS: { id: 'lafc', name: 'Los Angeles FC', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/18966.png', shortName: 'LAFC' },
-  CFL: { id: 'ticats', name: 'Hamilton Tiger-Cats', logo: '/logos/cfl/ticats.png', shortName: 'Tiger-Cats' }
+// Each league's go-to opponents for the mock matchups: the first one, or the
+// second when the fan's team is the first (so a team never plays itself).
+const LEAGUE_OPPONENT_IDS = {
+  NFL: ['chiefs', 'raiders'],
+  NBA: ['celtics', 'lakers'],
+  NHL: ['bruins', 'canadiens'],
+  MLB: ['yankees', 'redsox'],
+  MLS: ['galaxy', 'lafc'],
+  CFL: ['argonauts', 'ticats'],
+  EPL: ['liverpool', 'arsenal'],
+  LALIGA: ['real_madrid', 'barcelona'],
+  BUNDESLIGA: ['bayern', 'dortmund'],
+  SERIEA: ['juventus', 'inter'],
+  LIGUE1: ['psg', 'marseille']
 };
 
 function getOpponentForTeam(team) {
-  const primary = LEAGUE_OPPONENTS[team.league];
-  if (primary && primary.id !== team.id) {
-    return primary;
-  }
-  return LEAGUE_FALLBACK_OPPONENTS[team.league] || LEAGUE_FALLBACK_OPPONENTS.NHL;
+  const [first, second] = LEAGUE_OPPONENT_IDS[team.league] || LEAGUE_OPPONENT_IDS.NHL;
+  const { id, name, logo, shortName } = TEAM_DIRECTORY[first !== team.id ? first : second];
+  return { id, name, logo, shortName };
 }
 
-// Generate sport-specific watch configuration labels
-function getSportConfig(league) {
-  switch (league) {
-    case 'NFL':
+// Sport-specific watch configuration labels
+function getSportConfig(sport) {
+  switch (sport) {
+    case 'Football': // NFL and CFL
+    case 'Basketball':
       return {
         periodLabel: 'Quarters Watched',
         periodOptions: ['Q1', 'Q2', 'Q3', 'Q4', 'OT']
       };
-    case 'NBA':
-      return {
-        periodLabel: 'Quarters Watched',
-        periodOptions: ['Q1', 'Q2', 'Q3', 'Q4', 'OT']
-      };
-    case 'NHL':
+    case 'Hockey':
       return {
         periodLabel: 'Periods Watched',
         periodOptions: ['1st', '2nd', '3rd', 'OT']
       };
-    case 'MLB':
+    case 'Baseball':
       return {
         periodLabel: 'Innings Watched',
         periodOptions: ['1-3', '4-6', '7-9', 'Extra']
       };
-    case 'MLS':
+    case 'Soccer':
     default:
       return {
         periodLabel: 'Halves Watched',
@@ -59,6 +50,25 @@ function getSportConfig(league) {
       };
   }
 }
+
+const LIVE_STATUS = {
+  Football: '4th Quarter - 04:12',
+  Basketball: '4th Quarter - 04:12',
+  Hockey: '3rd Period - 04:12',
+  Baseball: 'Top 9th',
+  Soccer: '2nd Half - 84:10'
+};
+
+// The profile draws one arc per team, five at most
+const MAX_FAVORITES = 5;
+
+const isTeamId = (id) => Object.prototype.hasOwnProperty.call(TEAM_DIRECTORY, id);
+
+const toList = (value) =>
+  Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+
+const escapeXml = (s) =>
+  s.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
 
 export function generateFandomContext({ name, handle, favorites, scores }) {
   // 1. Sanitize user identity parameters
@@ -68,25 +78,30 @@ export function generateFandomContext({ name, handle, favorites, scores }) {
     finalHandle = `@${finalHandle}`;
   }
 
-  // 2. Sanitize and validate favorite teams list
-  let favoritesList = [];
-  if (favorites && Array.isArray(favorites)) {
-    favoritesList = favorites.filter(id => TEAM_DIRECTORY[id]);
-  } else if (favorites && typeof favorites === 'string') {
-    favoritesList = favorites.split(',').map(s => s.trim()).filter(id => TEAM_DIRECTORY[id]);
-  }
+  // 2. Sanitize and validate favorite teams list. Scores arrive as a parallel
+  // list (same order as favorites), so pair them up before dropping unknown
+  // or repeated teams, or every later team would take the wrong score.
+  const rawScores = toList(scores);
+  const picks = [];
+  toList(favorites).forEach((raw, idx) => {
+    const id = String(raw).trim();
+    if (!isTeamId(id) || picks.some(p => p.id === id) || picks.length >= MAX_FAVORITES) return;
+    const score = parseInt(String(rawScores[idx] ?? '').trim(), 10);
+    picks.push({ id, score: isNaN(score) ? undefined : Math.max(0, Math.min(100, score)) });
+  });
 
   // Fallback to default index if empty. (Must be valid TEAM_DIRECTORY ids — the
   // old 'jays' was not a real id and crashed when this fallback triggered.)
-  if (favoritesList.length === 0) {
-    favoritesList = ['leafs', 'bills', 'bluejays', 'raptors'];
+  if (picks.length === 0) {
+    ['leafs', 'bills', 'bluejays', 'raptors'].forEach(id => picks.push({ id, score: undefined }));
   }
+  const favoritesList = picks.map(p => p.id);
 
   // 3. Resolve active favorite team entities
   const selectedTeams = {};
   favoritesList.forEach(id => {
     const rawTeam = TEAM_DIRECTORY[id];
-    const sportCfg = getSportConfig(rawTeam.league);
+    const sportCfg = getSportConfig(rawTeam.sport);
     selectedTeams[id] = {
       ...rawTeam,
       ...sportCfg
@@ -97,30 +112,24 @@ export function generateFandomContext({ name, handle, favorites, scores }) {
   const topTeam = selectedTeams[topTeamId];
 
   // 4. Construct MOCK_PROFILE
-  // Parse passed-in scores (from landing page) or fall back to presets
-  let parsedScores = [];
-  if (scores) {
-    if (Array.isArray(scores)) {
-      parsedScores = scores.map(s => parseInt(s, 10)).filter(n => !isNaN(n));
-    } else if (typeof scores === 'string') {
-      parsedScores = scores.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-    }
-  }
-  // Devotion score baseline presets: 1st gets 92, 2nd gets 78, 3rd gets 65, 4th gets 42, 5th gets 28
+  // Scores passed in from the landing page, or presets where one is missing:
+  // 1st gets 92, 2nd gets 78, 3rd gets 65, 4th gets 42, 5th gets 28
   const scorePresets = [92, 78, 65, 42, 28];
-  const fandomIndex = favoritesList.map((teamId, idx) => ({
-    teamId,
-    score: parsedScores[idx] !== undefined ? parsedScores[idx] : (scorePresets[idx] || 25)
+  const fandomIndex = picks.map((p, idx) => ({
+    teamId: p.id,
+    score: p.score !== undefined ? p.score : (scorePresets[idx] || 25)
   }));
 
   const mockProfile = {
     user: {
       name: finalName,
       handle: finalHandle,
-      avatar: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><rect width="40" height="40" rx="20" fill="url(#g)"/><text x="20" y="26" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">${(finalName || 'G').charAt(0).toUpperCase()}</text></svg>`)}`, // Robust inline SVG avatar
+      avatar: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><rect width="40" height="40" rx="20" fill="url(#g)"/><text x="20" y="26" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">${escapeXml((finalName || 'G').charAt(0).toUpperCase())}</text></svg>`)}`, // Robust inline SVG avatar
       favorites: favoritesList
     },
     fandomIndex,
+    // Same overall score as the landing page's card
+    fanScore: computeFanScore(fandomIndex.map(f => f.score)),
     stats: {
       gamesWatched: 147,
       hoursWatched: 382,
@@ -139,7 +148,7 @@ export function generateFandomContext({ name, handle, favorites, scores }) {
     type: 'live-score',
     teamId: topTeamId,
     opponent: topTeamOpponent,
-    liveStatus: topTeam.league === 'MLB' ? 'Top 9th' : (topTeam.league === 'MLS' ? '2nd Half - 84:10' : '3rd Period - 04:12'),
+    liveStatus: LIVE_STATUS[topTeam.sport] || LIVE_STATUS.Hockey,
     score: { team: 3, opponent: 2 },
     isLive: true,
     headline: `Clutch Rivalry Match: ${topTeam.shortName} vs ${topTeamOpponent.shortName}`,

@@ -37,12 +37,15 @@ body {
 }
 
 /* Custom transitions and animations */
+/* Named live-pulse, not pulse: a global @keyframes pulse replaces Tailwind's
+   own, which made every animate-pulse element (the Join Live Match Chat
+   button included) throb in size instead of gently fading. */
 .live-pulse {
   box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-  animation: pulse 1.5s infinite;
+  animation: live-pulse 1.5s infinite;
 }
 
-@keyframes pulse {
+@keyframes live-pulse {
   0% {
     transform: scale(0.95);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
