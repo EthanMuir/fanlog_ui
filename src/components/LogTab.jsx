@@ -240,6 +240,7 @@ export default function LogTab({ pendingGames, loggedGames, onLogGame }) {
             >
               <button 
                 type="button"
+                aria-label="Back to games"
                 onClick={() => setSelectedGame(null)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
               >
@@ -287,6 +288,8 @@ export default function LogTab({ pendingGames, loggedGames, onLogGame }) {
                       <button
                         key={val}
                         type="button"
+                        aria-label={`Rate ${val} star${val === 1 ? '' : 's'}`}
+                        aria-pressed={isFilled}
                         onClick={() => setRating(val)}
                         className="p-1 focus:outline-none transition-transform hover:scale-110 active:scale-95"
                       >
@@ -327,6 +330,7 @@ export default function LogTab({ pendingGames, loggedGames, onLogGame }) {
                         <button
                           key={period}
                           type="button"
+                          aria-pressed={isActive}
                           onClick={() => handlePeriodToggle(period)}
                           className="py-2.5 rounded-lg border text-xs font-bold text-center transition-all focus:outline-none select-none"
                           style={{

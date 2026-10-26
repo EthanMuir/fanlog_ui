@@ -9,7 +9,10 @@ import { writeFileSync } from 'node:fs';
 import { sportsData } from '../../fanlog/teams.js';
 import { TEAM_DIRECTORY as EXISTING } from '../src/data/teamDirectory.js';
 
-const SPORT = { nfl: 'Football', nba: 'Basketball', nhl: 'Hockey', mlb: 'Baseball', mls: 'Soccer', cfl: 'Football' };
+const SPORT = {
+  nfl: 'Football', nba: 'Basketball', nhl: 'Hockey', mlb: 'Baseball', mls: 'Soccer', cfl: 'Football',
+  epl: 'Soccer', laliga: 'Soccer', bundesliga: 'Soccer', seriea: 'Soccer', ligue1: 'Soccer',
+};
 
 const SHORT_OVERRIDES = {
   // New MLS (city-strip leaves "FC"/"SC" or reads awkwardly)
@@ -20,12 +23,26 @@ const SHORT_OVERRIDES = {
   red_bulls: 'Red Bulls', san_diego_fc: 'San Diego FC', earthquakes: 'Earthquakes',
   sporting_kc: 'Sporting KC', stlouis_city: 'St. Louis City', vancouver_wc: 'Whitecaps',
   // CFL edge cases (name doesn't start with city)
-  bclions: 'Lions', roughriders: 'Roughriders'
+  bclions: 'Lions', roughriders: 'Roughriders',
+  // European clubs whose usual short name isn't just the name minus "FC" etc.
+  brighton: 'Brighton', tottenham: 'Spurs', wolves: 'Wolves', man_city: 'Man City', man_utd: 'Man United',
+  nottm_forest: 'Forest', west_ham: 'West Ham', atletico: 'Atlético', athletic: 'Athletic', celta: 'Celta',
+  alaves: 'Alavés', rayo: 'Rayo', bayern: 'Bayern', dortmund: 'Dortmund', leverkusen: 'Leverkusen',
+  frankfurt: 'Frankfurt', mgladbach: 'Gladbach', mainz: 'Mainz', union_berlin: 'Union Berlin', kiel: 'Kiel',
+  werder: 'Werder', inter: 'Inter', hellas_verona: 'Verona', psg: 'PSG', marseille: 'Marseille', lyon: 'Lyon',
+  rennes: 'Rennes', brest: 'Brest', reims: 'Reims', saint_etienne: 'Saint-Étienne'
 };
 
-function nickname(id, name, city) {
+// European leagues: club names rarely start with the city ("FC Barcelona",
+// "Valencia CF"), so drop the club-type initials and founding years instead.
+const EUROPE = new Set(['epl', 'laliga', 'bundesliga', 'seriea', 'ligue1']);
+const CLUB_TOKENS = /^(?:\d+\.|\d{2,4}|A?FC|CF|CFC|AC|ACF|AS|SS|SSC|BC|CA|CD|RCD|UD|US|RC|RB|OGC|LOSC|SCO|AJ|HSC|SC|TSG|FSV|VfB|VfL|Calcio)$/;
+const stripClubTokens = (name) => name.split(' ').filter((w) => !CLUB_TOKENS.test(w)).join(' ');
+
+function nickname(id, name, city, league) {
   if (EXISTING[id]) return EXISTING[id].shortName; // keep the original 50 exactly
   if (SHORT_OVERRIDES[id]) return SHORT_OVERRIDES[id];
+  if (EUROPE.has(league)) return stripClubTokens(name);
   if (city && name.startsWith(city + ' ')) return name.slice(city.length).trim();
   return name;
 }
@@ -36,7 +53,7 @@ for (const lg of Object.keys(sportsData)) {
   const L = lg.toUpperCase();
   lines.push(`\n  // ${L}`);
   for (const t of sportsData[lg].teams) {
-    const sn = nickname(t.id, t.name, t.city);
+    const sn = nickname(t.id, t.name, t.city, lg);
     lines.push(
       `  ${t.id}: { id: ${JSON.stringify(t.id)}, name: ${JSON.stringify(t.name)}, shortName: ${JSON.stringify(sn)}, league: ${JSON.stringify(L)}, sport: ${JSON.stringify(SPORT[lg])}, logo: ${JSON.stringify(t.logo)}, color: ${JSON.stringify(t.primary)}, accentColor: ${JSON.stringify(t.secondary)} },`
     );

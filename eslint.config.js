@@ -35,4 +35,10 @@ export default [
       ],
     },
   },
+  // Tests and tool configs run in Node, and Playwright fixtures' `use` isn't a React hook
+  {
+    files: ['e2e/**/*.js', 'tests/**/*.js', 'scripts/**/*.mjs', '*.config.js'],
+    languageOptions: { globals: globals.node },
+    rules: { 'react-hooks/rules-of-hooks': 'off' },
+  },
 ]

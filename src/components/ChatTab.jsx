@@ -233,6 +233,8 @@ export default function ChatTab({ activeRoomId, setActiveRoomId }) {
               style={{ backgroundColor: activeTeam.color }}
             >
               <button 
+                type="button"
+                aria-label="Back to rooms"
                 onClick={() => setActiveRoomId(null)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
               >
@@ -318,6 +320,7 @@ export default function ChatTab({ activeRoomId, setActiveRoomId }) {
               />
               <button 
                 type="submit"
+                aria-label="Send message"
                 disabled={!newMessageText.trim()}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-all disabled:opacity-40"
                 style={{ backgroundColor: activeTeam.color }}
